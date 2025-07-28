@@ -1,0 +1,10 @@
+Alice Smith,alice.smith@example.com,Medical
+Bob Lee,555-1234,Logistics
+Carla Nguyen,carla.nguyen@ngo.org,Engineering
+David Patel,d.patel@vols.org,FirstAid
+Elena García,elena.garcia@example.com,Communications
+Farid Khan,farid.khan@help.net,Food Distribution
+Grace Wong,grace.wong@example.com,Child Care
+Hiro Tanaka,hiro.tanaka@example.com,Search & Rescue
+Isabel Ortiz,isabel.ortiz@aid.org,Water & Sanitation
+Jamal Ahmed,jamal.ahmed@example.com,Shelter Setup

@@ -1,0 +1,2 @@
+Alice Smith,alice.smith@example.com,Medical
+Bob Lee,555-1234,Logistics

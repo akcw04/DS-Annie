@@ -1,0 +1,8 @@
+RiversideCamp 9 10
+MountainOutpost 8 8
+DowntownShelter 9 15
+LakesideRefuge 5 5
+DesertEdgeStation 8 12
+ValleyHopeCenter 9 12
+CoastalRescueHub 6 6
+ForestMidwayPoint 8 9
