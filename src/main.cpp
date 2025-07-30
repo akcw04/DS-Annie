@@ -1,43 +1,24 @@
 #include "../include/VolunteerQueue.hpp"
+#include "../include/CustomLists.hpp"
+#include "../include/Prototypes.hpp"
+#include "../include/SiteAlgorithm.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <vector>
 #include <iomanip>
 #include <stdexcept>
 #include <algorithm>
 #include <limits>
 #include <climits>
-#include <map>
 
 /**
  * Disaster Relief Logistics Management System
  * Role 2: Volunteer Operations Officer
  * 
- * Have to compile 2 cpp in tasks.json to run succcessfully.
- * "${workspaceFolder}\\src\\main.cpp",
- * "${workspaceFolder}\\src\\VolunteerQueue.cpp",
+ * This system manages volunteer registration and deployment using custom
+ * linked list implementations (no STL containers for core data structures).
  */
 
-// Function prototypes
-void displayMenu();
-void registerVolunteer(VolunteerQueue& queue);
-void registerSingleVolunteer(VolunteerQueue& queue);
-void registerMultipleVolunteers(VolunteerQueue& queue);
-void deployVolunteer(VolunteerQueue& queue);
-std::vector<ReliefSite> loadReliefSites(const std::string& filename);
-void saveReliefSites(const std::vector<ReliefSite>& sites, const std::string& filename);
-void viewRegisteredVolunteers(const VolunteerQueue& queue);
-void displayVolunteersFromFile(const std::string& filename);
-void displayCombinedVolunteerReport(const VolunteerQueue& queue);
-void saveVolunteerToFile(const Volunteer& volunteer, const std::string& filename);
-void saveAllVolunteersToFile(const VolunteerQueue& queue, const std::string& filename);
-void loadVolunteersFromFile(VolunteerQueue& queue, const std::string& filename);
-void validateVolunteerFile(const std::string& filename);
-void saveDeployedVolunteer(const Volunteer& volunteer, const std::string& filename);
-bool isVolunteerDeployed(const Volunteer& volunteer, const std::string& filename);
-std::string trim(const std::string& str);
-void pauseForUser();
 
 int main() {
     VolunteerQueue volunteerQueue;
@@ -49,7 +30,7 @@ int main() {
     
     // Load existing volunteers from file at startup
     std::cout << "=== SYSTEM INITIALIZATION ===\n";
-    loadVolunteersFromFile(volunteerQueue, "data/volunteers.txt");
+    loadVolunteersFromFile(volunteerQueue, "../data/volunteers.txt");
     
     int choice;
     bool running = true;
@@ -173,7 +154,7 @@ void registerSingleVolunteer(VolunteerQueue& queue) {
     queue.enqueue(newVolunteer);
     
     // Save volunteer to file
-    saveVolunteerToFile(newVolunteer, "data/volunteers.txt");
+    saveVolunteerToFile(newVolunteer, "../data/volunteers.txt");
     
     std::cout << "\nSuccessfully registered volunteer: " << "\n";
     std::cout << "Name: " << name << "\n";
@@ -181,7 +162,7 @@ void registerSingleVolunteer(VolunteerQueue& queue) {
     std::cout << "Skill: " << skill << "\n";
     
     // Validate file format
-    validateVolunteerFile("data/volunteers.txt");
+    validateVolunteerFile("../data/volunteers.txt");
 }
 
 /**
@@ -279,7 +260,7 @@ void registerMultipleVolunteers(VolunteerQueue& queue) {
         queue.enqueue(newVolunteer);
         
         // Save volunteer to file (each on separate line)
-        saveVolunteerToFile(newVolunteer, "data/volunteers.txt");
+        saveVolunteerToFile(newVolunteer, "../data/volunteers.txt");
         
         successCount++;
         std::cout << "[SUCCESS] Successfully registered: " << name << " (" << skill << ")\n";
@@ -304,7 +285,7 @@ void registerMultipleVolunteers(VolunteerQueue& queue) {
         std::cout << "Total volunteers in queue: " << queue.size() << "\n";
         
         // Validate file format after multiple registrations
-        validateVolunteerFile("data/volunteers.txt");
+        validateVolunteerFile("../data/volunteers.txt");
     }
 }
 
@@ -334,8 +315,8 @@ void deployVolunteer(VolunteerQueue& queue) {
     // Show current queue status before deployment
     std::cout << "Current volunteers in queue: " << queue.size() << "\n";
     
-    // Load relief sites
-    std::vector<ReliefSite> sites = loadReliefSites("data/relief_sites.txt");
+    // Load relief sites using custom linked list
+    CustomLinkedList<ReliefSite> sites = loadReliefSites("../data/relief_sites.txt");
     
     if (sites.empty()) {
         std::cout << "Error: Could not load relief sites data.\n";
@@ -351,13 +332,13 @@ void deployVolunteer(VolunteerQueue& queue) {
     std::cout << std::string(60, '-') << "\n";
     
     bool hasAvailableCapacity = false;
-    for (const auto& site : sites) {
-        int available = site.maxCapacity - site.currentCount;
+    for (auto it = sites.begin(); it != sites.end(); ++it) {
+        int available = it->maxCapacity - it->currentCount;
         std::string status = (available > 0) ? "AVAILABLE" : "FULL";
         if (available > 0) hasAvailableCapacity = true;
         
-        std::cout << std::left << std::setw(20) << site.name
-                  << std::setw(15) << (std::to_string(site.currentCount) + "/" + std::to_string(site.maxCapacity))
+        std::cout << std::left << std::setw(20) << it->name
+                  << std::setw(15) << (std::to_string(it->currentCount) + "/" + std::to_string(it->maxCapacity))
                   << std::setw(15) << available
                   << std::setw(10) << status << "\n";
     }
@@ -376,9 +357,9 @@ void deployVolunteer(VolunteerQueue& queue) {
         std::cout << "- Volunteers waiting in queue: " << queue.size() << "\n\n";
         
         std::cout << "DETAILED SITE STATUS:\n";
-        for (const auto& site : sites) {
-            std::cout << "- " << site.name << ": " << site.currentCount 
-                      << "/" << site.maxCapacity << " (FULL)\n";
+        for (auto it = sites.begin(); it != sites.end(); ++it) {
+            std::cout << "- " << it->name << ": " << it->currentCount 
+                      << "/" << it->maxCapacity << " (FULL)\n";
         }
         
         std::cout << "\nACTION REQUIRED:\n";
@@ -393,25 +374,36 @@ void deployVolunteer(VolunteerQueue& queue) {
     }
     
     // Find site with lowest current count that isn't at capacity
-    int bestSiteIndex = -1;
-    int lowestCount = INT_MAX;
+    // int bestSiteIndex = -1;
+    // int lowestCount = INT_MAX;
     
-    for (size_t i = 0; i < sites.size(); i++) {
-        if (sites[i].currentCount < sites[i].maxCapacity) {
-            if (sites[i].currentCount < lowestCount) {
-                lowestCount = sites[i].currentCount;
-                bestSiteIndex = static_cast<int>(i);
-            }
-        }
+    // int index = 0;
+    // for (auto it = sites.begin(); it != sites.end(); ++it, ++index) {
+    //     if (it->currentCount < it->maxCapacity) {
+    //         if (it->currentCount < lowestCount) {
+    //             lowestCount = it->currentCount;
+    //             bestSiteIndex = index;
+    //         }
+    //     }
+    // }
+
+    int bestSiteIndex = findMostNeededSite(sites);
+
+    if (bestSiteIndex == -1) {
+        std::cout << "\n[ERROR] DEPLOYMENT CANNOT PROCEED [ERROR]\n";
+        std::cout << "REASON: No sites available for deployment\n";
+        return;
     }
     
     // Deploy the volunteer (FIFO - first registered is first deployed)
     try {
         Volunteer volunteer = queue.dequeue();  // This gets the FIRST volunteer in queue
+        
+        // Update the site capacity using array-like access
         sites[bestSiteIndex].currentCount++;
         
         // Save the deployed volunteer to deployed file
-        saveDeployedVolunteer(volunteer, "data/deployed_volunteers.txt");
+        saveDeployedVolunteer(volunteer, "../data/deployed_volunteers.txt");
         
         std::cout << "\n*** DEPLOYMENT SUCCESSFUL ***\n";
         std::cout << std::string(50, '=') << "\n";
@@ -437,7 +429,7 @@ void deployVolunteer(VolunteerQueue& queue) {
                   << sites[bestSiteIndex].maxCapacity << ")\n\n";
         
         // Save updated site data
-        saveReliefSites(sites, "data/relief_sites.txt");
+        saveReliefSites(sites, "../data/relief_sites.txt");
         
         std::cout << "QUEUE STATUS:\n";
         std::cout << "- Remaining volunteers in queue: " << queue.size() << "\n";
@@ -457,10 +449,10 @@ void deployVolunteer(VolunteerQueue& queue) {
 }
 
 /**
- * Load relief sites from file
+ * Load relief sites from file using custom linked list
  */
-std::vector<ReliefSite> loadReliefSites(const std::string& filename) {
-    std::vector<ReliefSite> sites;
+CustomLinkedList<ReliefSite> loadReliefSites(const std::string& filename) {
+    CustomLinkedList<ReliefSite> sites;
     std::ifstream file(filename);
     
     if (!file.is_open()) {
@@ -481,7 +473,7 @@ std::vector<ReliefSite> loadReliefSites(const std::string& filename) {
             try {
                 int current = std::stoi(currentStr);
                 int max = std::stoi(maxStr);
-                sites.emplace_back(name, current, max);
+                sites.push_back(ReliefSite(name, current, max));
             } catch (const std::exception&) {
                 std::cout << "Warning: Invalid line in relief sites file: " << line << "\n";
             }
@@ -493,9 +485,9 @@ std::vector<ReliefSite> loadReliefSites(const std::string& filename) {
 }
 
 /**
- * Save relief sites to file
+ * Save relief sites to file using custom linked list
  */
-void saveReliefSites(const std::vector<ReliefSite>& sites, const std::string& filename) {
+void saveReliefSites(const CustomLinkedList<ReliefSite>& sites, const std::string& filename) {
     std::ofstream file(filename);
     
     if (!file.is_open()) {
@@ -503,8 +495,8 @@ void saveReliefSites(const std::vector<ReliefSite>& sites, const std::string& fi
         return;
     }
     
-    for (const auto& site : sites) {
-        file << site.name << " " << site.currentCount << " " << site.maxCapacity << "\n";
+    for (auto it = sites.begin(); it != sites.end(); ++it) {
+        file << it->name << " " << it->currentCount << " " << it->maxCapacity << "\n";
     }
     
     file.close();
@@ -514,7 +506,6 @@ void saveReliefSites(const std::vector<ReliefSite>& sites, const std::string& fi
  * View all registered volunteers
  */
 void viewRegisteredVolunteers(const VolunteerQueue& queue) {
-    
     if (queue.isEmpty()) {
         std::cout << "No volunteers currently available for deployment.\n";
         std::cout << "All volunteers from file have been deployed or no volunteers registered.\n\n";
@@ -528,7 +519,7 @@ void viewRegisteredVolunteers(const VolunteerQueue& queue) {
 }
 
 /**
- * Display volunteers from the registered volunteers file
+ * Display volunteers from the registered volunteers file using custom list for storage
  */
 void displayVolunteersFromFile(const std::string& filename) {
     std::cout << "=== ALL REGISTERED VOLUNTEERS (From File) ===\n";
@@ -540,12 +531,12 @@ void displayVolunteersFromFile(const std::string& filename) {
         return;
     }
     
-    std::vector<Volunteer> volunteers;
+    CustomLinkedList<Volunteer> volunteers;
     std::string line;
     int lineNumber = 0;
     int validCount = 0;
     
-    // Read all volunteers from file
+    // Read all volunteers from file into custom linked list
     while (std::getline(file, line)) {
         lineNumber++;
         line = trim(line);
@@ -564,7 +555,7 @@ void displayVolunteersFromFile(const std::string& filename) {
             skill = trim(skill);
             
             if (!name.empty() && !contact.empty() && !skill.empty()) {
-                volunteers.emplace_back(name, contact, skill);
+                volunteers.push_back(Volunteer(name, contact, skill));
                 validCount++;
             }
         }
@@ -584,35 +575,39 @@ void displayVolunteersFromFile(const std::string& filename) {
               << std::setw(20) << "Skill/Specialization" << "\n";
     std::cout << std::string(80, '=') << "\n";
     
-    // Display all volunteers
-    for (size_t i = 0; i < volunteers.size(); i++) {
-        std::cout << std::left << std::setw(5) << (i + 1)
-                  << std::setw(25) << volunteers[i].name.substr(0, 24)
-                  << std::setw(30) << volunteers[i].contact.substr(0, 29)
-                  << std::setw(20) << volunteers[i].skill.substr(0, 19) << "\n";
+    // Display all volunteers using iterator
+    int id = 1;
+    for (auto it = volunteers.begin(); it != volunteers.end(); ++it, ++id) {
+        std::cout << std::left << std::setw(5) << id
+                  << std::setw(25) << it->name.substr(0, 24)
+                  << std::setw(30) << it->contact.substr(0, 29)
+                  << std::setw(20) << it->skill.substr(0, 19) << "\n";
     }
     
     std::cout << std::string(80, '=') << "\n";
     std::cout << "Total registered volunteers: " << validCount << "\n";
     
-    // Show skill statistics
+    // Show skill statistics using custom skill counter
     std::cout << "\n=== SKILL DISTRIBUTION ===\n";
-    std::map<std::string, int> skillCounts;
-    for (const auto& vol : volunteers) {
-        skillCounts[vol.skill]++;
+    SkillCounter skillCounts;
+    for (auto it = volunteers.begin(); it != volunteers.end(); ++it) {
+        skillCounts.increment(it->skill);
     }
     
     std::cout << std::left << std::setw(25) << "Skill" << std::setw(10) << "Count" << "\n";
     std::cout << std::string(35, '-') << "\n";
-    for (const auto& pair : skillCounts) {
-        std::cout << std::left << std::setw(25) << pair.first 
-                  << std::setw(10) << pair.second << "\n";
+    
+    if (!skillCounts.empty()) {
+        for (auto it = skillCounts.begin(); it != skillCounts.end(); ++it) {
+            std::cout << std::left << std::setw(25) << it->skill 
+                      << std::setw(10) << it->count << "\n";
+        }
     }
     std::cout << std::string(35, '-') << "\n\n";
 }
 
 /**
- * Display combined report of queue and file data
+ * Display combined report of queue and file data using custom lists
  */
 void displayCombinedVolunteerReport(const VolunteerQueue& queue) {
     std::cout << "=== COMPREHENSIVE VOLUNTEER REPORT ===\n\n";
@@ -628,20 +623,18 @@ void displayCombinedVolunteerReport(const VolunteerQueue& queue) {
     
     std::cout << "\n";
     
-    // Show deployed volunteers
+    // Show deployed volunteers using custom list
     std::cout << "2. DEPLOYED VOLUNTEERS (Currently in Field)\n";
     std::cout << std::string(60, '-') << "\n";
     
-    std::ifstream deployedFile("data/deployed_volunteers.txt");
+    std::ifstream deployedFile("../data/deployed_volunteers.txt");
+    CustomLinkedList<Volunteer> deployedVolunteers;
     int deployedCount = 0;
+    
     if (deployedFile.is_open()) {
         std::string line;
-        std::cout << std::left << std::setw(5) << "ID" 
-                  << std::setw(25) << "Name" 
-                  << std::setw(30) << "Contact" 
-                  << std::setw(20) << "Skill/Specialization" << "\n";
-        std::cout << std::string(80, '=') << "\n";
         
+        // Load deployed volunteers into custom list
         while (std::getline(deployedFile, line)) {
             line = trim(line);
             if (line.empty()) continue;
@@ -658,20 +651,30 @@ void displayCombinedVolunteerReport(const VolunteerQueue& queue) {
                 skill = trim(skill);
                 
                 if (!name.empty() && !contact.empty() && !skill.empty()) {
+                    deployedVolunteers.push_back(Volunteer(name, contact, skill));
                     deployedCount++;
-                    std::cout << std::left << std::setw(5) << deployedCount
-                              << std::setw(25) << name.substr(0, 24)
-                              << std::setw(30) << contact.substr(0, 29)
-                              << std::setw(20) << skill.substr(0, 19) << "\n";
                 }
             }
         }
         deployedFile.close();
         
-        if (deployedCount == 0) {
-            std::cout << "No volunteers currently deployed.\n";
-        } else {
+        if (deployedCount > 0) {
+            std::cout << std::left << std::setw(5) << "ID" 
+                      << std::setw(25) << "Name" 
+                      << std::setw(30) << "Contact" 
+                      << std::setw(20) << "Skill/Specialization" << "\n";
             std::cout << std::string(80, '=') << "\n";
+            
+            int id = 1;
+            for (auto it = deployedVolunteers.begin(); it != deployedVolunteers.end(); ++it, ++id) {
+                std::cout << std::left << std::setw(5) << id
+                          << std::setw(25) << it->name.substr(0, 24)
+                          << std::setw(30) << it->contact.substr(0, 29)
+                          << std::setw(20) << it->skill.substr(0, 19) << "\n";
+            }
+            std::cout << std::string(80, '=') << "\n";
+        } else {
+            std::cout << "No volunteers currently deployed.\n";
         }
     } else {
         std::cout << "No deployed volunteers file found.\n";
@@ -682,18 +685,19 @@ void displayCombinedVolunteerReport(const VolunteerQueue& queue) {
     // Show all registered volunteers from file
     std::cout << "3. REGISTRATION HISTORY (All Previously Registered)\n";
     std::cout << std::string(60, '-') << "\n";
-    displayVolunteersFromFile("data/volunteers.txt");
+    displayVolunteersFromFile("../data/volunteers.txt");
     
     // Show summary statistics
     std::cout << "\n4. SYSTEM SUMMARY\n";
     std::cout << std::string(60, '-') << "\n";
     
-    // Count total from file
-    std::ifstream file("data/volunteers.txt");
+    // Count total from file using custom list
+    std::ifstream file("../data/volunteers.txt");
+    CustomLinkedList<Volunteer> allRegistered;
     int totalRegistered = 0;
-    std::string line;
     
     if (file.is_open()) {
+        std::string line;
         while (std::getline(file, line)) {
             line = trim(line);
             if (!line.empty()) {
@@ -702,7 +706,13 @@ void displayCombinedVolunteerReport(const VolunteerQueue& queue) {
                 if (std::getline(ss, name, ',') && 
                     std::getline(ss, contact, ',') && 
                     std::getline(ss, skill)) {
-                    totalRegistered++;
+                    name = trim(name);
+                    contact = trim(contact);
+                    skill = trim(skill);
+                    if (!name.empty() && !contact.empty() && !skill.empty()) {
+                        allRegistered.push_back(Volunteer(name, contact, skill));
+                        totalRegistered++;
+                    }
                 }
             }
         }
@@ -779,7 +789,7 @@ void validateVolunteerFile(const std::string& filename) {
         return; // File doesn't exist yet, which is fine
     }
     
-    std::vector<std::string> lines;
+    CustomLinkedList<std::string> validLines;
     std::string line;
     int lineNum = 0;
     bool hasIssues = false;
@@ -802,7 +812,7 @@ void validateVolunteerFile(const std::string& filename) {
             std::cout << "Line content: " << line << "\n";
             hasIssues = true;
         } else {
-            lines.push_back(line);
+            validLines.push_back(line);
         }
     }
     file.close();
@@ -814,7 +824,7 @@ void validateVolunteerFile(const std::string& filename) {
 }
 
 /**
- * Load volunteers from file into the queue
+ * Load volunteers from file into the queue using custom list for intermediate storage
  */
 void loadVolunteersFromFile(VolunteerQueue& queue, const std::string& filename) {
     std::ifstream file(filename);
@@ -823,6 +833,7 @@ void loadVolunteersFromFile(VolunteerQueue& queue, const std::string& filename) 
         return;
     }
     
+    CustomLinkedList<Volunteer> loadedVolunteers;
     std::string line;
     int loadedCount = 0;
     int skippedCount = 0;
@@ -853,7 +864,7 @@ void loadVolunteersFromFile(VolunteerQueue& queue, const std::string& filename) 
                 Volunteer volunteer(name, contact, skill);
                 
                 // Check if volunteer is already deployed
-                if (!isVolunteerDeployed(volunteer, "data/deployed_volunteers.txt")) {
+                if (!isVolunteerDeployed(volunteer, "../data/deployed_volunteers.txt")) {
                     queue.enqueue(volunteer);
                     loadedCount++;
                 } else {
@@ -879,6 +890,7 @@ void loadVolunteersFromFile(VolunteerQueue& queue, const std::string& filename) 
 
 /**
  * Save all volunteers in queue to file (overwrite mode)
+ * Note: This is challenging with queue structure, so we maintain append approach
  */
 void saveAllVolunteersToFile(const VolunteerQueue& queue, const std::string& filename) {
     std::ofstream file(filename);
@@ -931,7 +943,7 @@ void saveDeployedVolunteer(const Volunteer& volunteer, const std::string& filena
 }
 
 /**
- * Check if a volunteer is already deployed
+ * Check if a volunteer is already deployed using custom list for searching
  */
 bool isVolunteerDeployed(const Volunteer& volunteer, const std::string& filename) {
     std::ifstream file(filename);
@@ -939,7 +951,10 @@ bool isVolunteerDeployed(const Volunteer& volunteer, const std::string& filename
         return false; // File doesn't exist, so volunteer is not deployed
     }
     
+    CustomLinkedList<Volunteer> deployedList;
     std::string line;
+    
+    // Load all deployed volunteers into custom list
     while (std::getline(file, line)) {
         line = trim(line);
         if (line.empty()) continue;
@@ -956,17 +971,20 @@ bool isVolunteerDeployed(const Volunteer& volunteer, const std::string& filename
             contact = trim(contact);
             skill = trim(skill);
             
-            // Check if this matches our volunteer (compare all fields)
-            if (name == volunteer.name && 
-                contact == volunteer.contact && 
-                skill == volunteer.skill) {
-                file.close();
-                return true; // Volunteer is already deployed
-            }
+            deployedList.push_back(Volunteer(name, contact, skill));
+        }
+    }
+    file.close();
+    
+    // Search through deployed list using iterator
+    for (auto it = deployedList.begin(); it != deployedList.end(); ++it) {
+        if (it->name == volunteer.name && 
+            it->contact == volunteer.contact && 
+            it->skill == volunteer.skill) {
+            return true; // Volunteer is already deployed
         }
     }
     
-    file.close();
     return false; // Volunteer not found in deployed list
 }
 
